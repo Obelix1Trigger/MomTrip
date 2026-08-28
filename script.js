@@ -1,20 +1,21 @@
 /* =========================================
-   MOMTRIP — FULL SCRIPT
-   ========================================= */
+   MOMTRIP — COMPLETE SCRIPT
+   Welcome → Question → Schedule → Thank You
+========================================= */
+
 
 /* =========================================
-   PAGE 1 → QUESTION PAGE
-   ========================================= */
+   WELCOME → QUESTION
+========================================= */
 
 function goToQuestion() {
-    console.log("MomTrip: Continue clicked");
     showQuestionPage();
 }
 
 
 /* =========================================
    QUESTION PAGE
-   ========================================= */
+========================================= */
 
 function showQuestionPage() {
 
@@ -55,16 +56,17 @@ function showQuestionPage() {
                 <div class="buttons-area">
 
                     <button
+                        type="button"
                         class="yes-button"
-                        onclick="sayYes()"
+                        id="yesButton"
                     >
                         YES! ❤️
                     </button>
 
                     <button
+                        type="button"
                         class="no-button"
                         id="noButton"
-                        type="button"
                     >
                         NO 😭
                     </button>
@@ -77,11 +79,27 @@ function showQuestionPage() {
                 class="pleading-message"
                 id="pleadingMessage"
             >
-                <span>Mommmm 🥹❤️ please say YES!</span>
+                <span>
+                    Mommmm 🥹❤️ please say YES!
+                </span>
             </div>
 
         </div>
     `;
+
+    /* IMPORTANT:
+       Attach YES button AFTER creating the page.
+    */
+
+    const yesButton =
+        document.getElementById("yesButton");
+
+    if (yesButton) {
+        yesButton.addEventListener(
+            "click",
+            sayYes
+        );
+    }
 
     setupNoButton();
 }
@@ -89,129 +107,59 @@ function showQuestionPage() {
 
 /* =========================================
    SMART NO BUTTON
-   ========================================= */
+========================================= */
 
 function setupNoButton() {
 
-    const noButton = document.getElementById("noButton");
-    const message = document.getElementById("pleadingMessage");
+    const noButton =
+        document.getElementById("noButton");
+
+    const message =
+        document.getElementById("pleadingMessage");
 
     if (!noButton || !message) {
-        console.error("MomTrip: NO button setup failed.");
         return;
     }
 
     let attempts = 0;
 
-    let currentX = 0;
-    let currentY = 0;
-
-    let targetX = 0;
-    let targetY = 0;
-
-    let animationFrame = null;
-    let initialized = false;
-
-
-    /* -----------------------------------------
-       INITIALIZE
-       ----------------------------------------- */
-
-    function initializeButton() {
-
-        if (initialized) return;
-
-        const rect = noButton.getBoundingClientRect();
-
-        currentX = rect.left;
-        currentY = rect.top;
-
-        targetX = currentX;
-        targetY = currentY;
-
-        initialized = true;
-    }
-
-
-    /* -----------------------------------------
-       KEEP BUTTON INSIDE SCREEN
-       ----------------------------------------- */
-
-    function keepInsideScreen(x, y) {
-
-        const width = noButton.offsetWidth;
-        const height = noButton.offsetHeight;
-
-        const padding = 20;
-
-        const maxX = Math.max(
-            padding,
-            window.innerWidth - width - padding
-        );
-
-        const maxY = Math.max(
-            padding,
-            window.innerHeight - height - padding
-        );
-
-        return {
-            x: Math.max(
-                padding,
-                Math.min(x, maxX)
-            ),
-
-            y: Math.max(
-                padding,
-                Math.min(y, maxY)
-            )
-        };
-    }
-
-
-    /* -----------------------------------------
-       ANIMATE BUTTON
-       ----------------------------------------- */
-
-    function animateButton() {
-
-        const speed = 0.14;
-
-        currentX += (targetX - currentX) * speed;
-        currentY += (targetY - currentY) * speed;
-
-        noButton.style.left = `${currentX}px`;
-        noButton.style.top = `${currentY}px`;
-
-        const differenceX = Math.abs(targetX - currentX);
-        const differenceY = Math.abs(targetY - currentY);
-
-        if (differenceX > 0.5 || differenceY > 0.5) {
-
-            animationFrame =
-                requestAnimationFrame(animateButton);
-
-        } else {
-
-            currentX = targetX;
-            currentY = targetY;
-
-            noButton.style.left = `${currentX}px`;
-            noButton.style.top = `${currentY}px`;
-
-            animationFrame = null;
-        }
-    }
+    const messages = [
+        "Mommmm 🥹❤️ please say YES!",
+        "Please Mom 🥹💕 we would love to go!",
+        "Just one swimming trip, Mom? 🏊‍♂️❤️",
+        "Pretty please, Mom? 🥹❤️",
+        "It would make us so happy! ❤️",
+        "Mom pleaseee 😭💕 we promise it'll be fun!",
+        "One little YES, Mom? 🥹❤️",
+        "Please make our holiday special! 🏊‍♂️💕",
+        "Mommmm, we're asking nicely 🥹❤️",
+        "Please Mom! A swimming day would be amazing! 🏊‍♂️💕"
+    ];
 
 
     /* -----------------------------------------
        MOVE NO BUTTON
-       ----------------------------------------- */
+    ----------------------------------------- */
 
-    function moveButton(mouseX, mouseY) {
+    function escapeButton(pointerX, pointerY) {
 
-        initializeButton();
+        attempts++;
 
-        const rect = noButton.getBoundingClientRect();
+        /*
+         * Change to fixed positioning.
+         * This prevents the button from moving
+         * relative to the card.
+         */
+
+        const rect =
+            noButton.getBoundingClientRect();
+
+        noButton.style.position = "fixed";
+        noButton.style.zIndex = "9999";
+
+        /*
+         * Current center
+         */
 
         const centerX =
             rect.left + rect.width / 2;
@@ -219,171 +167,186 @@ function setupNoButton() {
         const centerY =
             rect.top + rect.height / 2;
 
-        const dx = centerX - mouseX;
-        const dy = centerY - mouseY;
+        /*
+         * Direction away from pointer
+         */
 
-        const distance =
-            Math.sqrt(dx * dx + dy * dy);
+        let dx =
+            centerX - pointerX;
 
-        const dangerDistance = 135;
+        let dy =
+            centerY - pointerY;
 
-        if (distance > dangerDistance) {
-            return;
-        }
+        let distance =
+            Math.sqrt(
+                dx * dx +
+                dy * dy
+            );
 
-        attempts++;
-
-        /* -----------------------------------------
-           DIRECTION AWAY FROM CURSOR
-           ----------------------------------------- */
-
-        let directionX;
-        let directionY;
+        /*
+         * If pointer is directly on it,
+         * choose a random direction.
+         */
 
         if (distance < 1) {
 
             const angle =
-                Math.random() * Math.PI * 2;
+                Math.random() *
+                Math.PI *
+                2;
 
-            directionX = Math.cos(angle);
-            directionY = Math.sin(angle);
+            dx = Math.cos(angle);
+            dy = Math.sin(angle);
 
-        } else {
-
-            directionX = dx / distance;
-            directionY = dy / distance;
+            distance = 1;
         }
 
+        dx /= distance;
+        dy /= distance;
 
-        /* -----------------------------------------
-           MOVEMENT
-           ----------------------------------------- */
 
-        const moveDistance =
-            140 + Math.random() * 80;
+        /*
+         * Make the escape distance
+         * reasonably large.
+         */
+
+        const jump =
+            180 +
+            Math.random() * 120;
+
 
         let newX =
-            currentX + directionX * moveDistance;
+            centerX +
+            dx * jump -
+            rect.width / 2;
 
         let newY =
-            currentY + directionY * moveDistance;
+            centerY +
+            dy * jump -
+            rect.height / 2;
 
 
-        /* Small randomness */
+        /*
+         * Add a little randomness.
+         */
+
         newX +=
-            (Math.random() - 0.5) * 60;
+            (Math.random() - 0.5) * 80;
 
         newY +=
-            (Math.random() - 0.5) * 50;
+            (Math.random() - 0.5) * 60;
 
 
-        /* -----------------------------------------
-           KEEP INSIDE SCREEN
-           ----------------------------------------- */
+        /*
+         * Keep completely inside screen.
+         */
 
-        const safePosition =
-            keepInsideScreen(newX, newY);
+        const padding = 20;
 
-        targetX = safePosition.x;
-        targetY = safePosition.y;
+        const maxX =
+            window.innerWidth -
+            rect.width -
+            padding;
 
-
-        /* -----------------------------------------
-           MAKE POSITION FIXED
-           ----------------------------------------- */
-
-        if (
-            getComputedStyle(noButton).position !==
-            "fixed"
-        ) {
-
-            const buttonRect =
-                noButton.getBoundingClientRect();
-
-            currentX = buttonRect.left;
-            currentY = buttonRect.top;
-
-            noButton.style.position = "fixed";
-
-            noButton.style.left =
-                `${currentX}px`;
-
-            noButton.style.top =
-                `${currentY}px`;
-        }
+        const maxY =
+            window.innerHeight -
+            rect.height -
+            padding;
 
 
-        /* -----------------------------------------
-           START ANIMATION
-           ----------------------------------------- */
+        newX =
+            Math.max(
+                padding,
+                Math.min(newX, maxX)
+            );
 
-        if (!animationFrame) {
-
-            animationFrame =
-                requestAnimationFrame(
-                    animateButton
-                );
-        }
+        newY =
+            Math.max(
+                padding,
+                Math.min(newY, maxY)
+            );
 
 
-        /* -----------------------------------------
-           NICE MESSAGES
-           ----------------------------------------- */
+        /*
+         * TELEPORT.
+         *
+         * No sliding.
+         * No disappearing.
+         */
 
-        const messages = [
+        noButton.style.left =
+            `${newX}px`;
 
-            "Mommmm 🥹❤️ please say YES!",
+        noButton.style.top =
+            `${newY}px`;
 
-            "Please Mom 🥹💕 we would love to go!",
 
-            "Just one swimming trip, Mom? 🏊‍♂️❤️",
-
-            "Pretty please, Mom? 🥹❤️",
-
-            "It would make us so happy! ❤️",
-
-            "Mom pleaseee 😭💕 we promise it'll be fun!",
-
-            "One little YES, Mom? 🥹❤️",
-
-            "Please make our holiday special! 🏊‍♂️❤️",
-
-            "Mommmm, we're asking nicely 🥹❤️",
-
-            "Please Mom! A swimming day would be amazing! 🏊‍♂️💕"
-        ];
+        /*
+         * Update message.
+         */
 
         message.classList.add("show");
 
         message.innerHTML =
-            `<span>${
-                messages[
-                    (attempts - 1) %
-                    messages.length
-                ]
-            }</span>`;
+            `<span>${messages[
+                (attempts - 1) %
+                messages.length
+            ]}</span>`;
     }
 
 
     /* -----------------------------------------
-       MOUSE MOVEMENT
-       ----------------------------------------- */
+       MOUSE
+    ----------------------------------------- */
 
     document.addEventListener(
         "mousemove",
         function(event) {
 
-            moveButton(
-                event.clientX,
-                event.clientY
-            );
+            /*
+             * If the pointer gets close,
+             * the button escapes.
+             */
+
+            const rect =
+                noButton.getBoundingClientRect();
+
+            const centerX =
+                rect.left +
+                rect.width / 2;
+
+            const centerY =
+                rect.top +
+                rect.height / 2;
+
+            const dx =
+                centerX -
+                event.clientX;
+
+            const dy =
+                centerY -
+                event.clientY;
+
+            const distance =
+                Math.sqrt(
+                    dx * dx +
+                    dy * dy
+                );
+
+            if (distance < 110) {
+
+                escapeButton(
+                    event.clientX,
+                    event.clientY
+                );
+            }
         }
     );
 
 
     /* -----------------------------------------
        TOUCH
-       ----------------------------------------- */
+    ----------------------------------------- */
 
     noButton.addEventListener(
         "touchstart",
@@ -394,7 +357,7 @@ function setupNoButton() {
             const touch =
                 event.touches[0];
 
-            moveButton(
+            escapeButton(
                 touch.clientX,
                 touch.clientY
             );
@@ -407,7 +370,7 @@ function setupNoButton() {
 
     /* -----------------------------------------
        CLICK
-       ----------------------------------------- */
+    ----------------------------------------- */
 
     noButton.addEventListener(
         "click",
@@ -418,9 +381,12 @@ function setupNoButton() {
             const rect =
                 noButton.getBoundingClientRect();
 
-            moveButton(
-                rect.left + rect.width / 2,
-                rect.top + rect.height / 2
+            escapeButton(
+                rect.left +
+                rect.width / 2,
+
+                rect.top +
+                rect.height / 2
             );
         }
     );
@@ -428,43 +394,54 @@ function setupNoButton() {
 
     /* -----------------------------------------
        RESIZE
-       ----------------------------------------- */
+    ----------------------------------------- */
 
     window.addEventListener(
         "resize",
         function() {
 
-            initializeButton();
+            const rect =
+                noButton.getBoundingClientRect();
 
-            const safe =
-                keepInsideScreen(
-                    currentX,
-                    currentY
+            const padding = 20;
+
+            const maxX =
+                window.innerWidth -
+                rect.width -
+                padding;
+
+            const maxY =
+                window.innerHeight -
+                rect.height -
+                padding;
+
+            let x =
+                Math.max(
+                    padding,
+                    Math.min(rect.left, maxX)
                 );
 
-            currentX = safe.x;
-            currentY = safe.y;
-
-            targetX = safe.x;
-            targetY = safe.y;
+            let y =
+                Math.max(
+                    padding,
+                    Math.min(rect.top, maxY)
+                );
 
             noButton.style.left =
-                `${currentX}px`;
+                `${x}px`;
 
             noButton.style.top =
-                `${currentY}px`;
+                `${y}px`;
         }
     );
 }
 
 
 /* =========================================
-   YES BUTTON
-   ========================================= */
+   YES → SCHEDULE
+========================================= */
 
 function sayYes() {
-
-    console.log("MomTrip: YES clicked");
 
     document.body.innerHTML = `
 
@@ -522,9 +499,9 @@ function sayYes() {
                     >
 
                     <button
-                        class="confirm-button"
-                        onclick="confirmSchedule()"
                         type="button"
+                        class="confirm-button"
+                        id="confirmButton"
                     >
                         CONFIRM OUR TRIP ❤️
                     </button>
@@ -536,13 +513,32 @@ function sayYes() {
         </div>
     `;
 
+
+    /*
+     * Attach confirm button.
+     */
+
+    const confirmButton =
+        document.getElementById(
+            "confirmButton"
+        );
+
+    if (confirmButton) {
+
+        confirmButton.addEventListener(
+            "click",
+            confirmSchedule
+        );
+    }
+
+
     setupDateInput();
 }
 
 
 /* =========================================
    DATE INPUT
-   ========================================= */
+========================================= */
 
 function setupDateInput() {
 
@@ -557,12 +553,14 @@ function setupDateInput() {
         );
 
     if (!picker || !display) {
-        console.error("MomTrip: Date input setup failed.");
         return;
     }
 
 
-    /* Open calendar */
+    /* -----------------------------------------
+       OPEN DATE PICKER
+    ----------------------------------------- */
+
     display.addEventListener(
         "click",
         function() {
@@ -582,12 +580,17 @@ function setupDateInput() {
     );
 
 
-    /* Calendar date selected */
+    /* -----------------------------------------
+       DATE PICKER → TEXT
+    ----------------------------------------- */
+
     picker.addEventListener(
         "change",
         function() {
 
-            if (!picker.value) return;
+            if (!picker.value) {
+                return;
+            }
 
             const parts =
                 picker.value.split("-");
@@ -602,7 +605,10 @@ function setupDateInput() {
     );
 
 
-    /* Manual date entry */
+    /* -----------------------------------------
+       FORMAT MANUAL DATE
+    ----------------------------------------- */
+
     display.addEventListener(
         "input",
         function() {
@@ -650,9 +656,11 @@ function setupDateInput() {
 
 /* =========================================
    CONVERT DATE
-   ========================================= */
+========================================= */
 
-function convertDateToServerFormat(dateString) {
+function convertDateToServerFormat(
+    dateString
+) {
 
     const parts =
         dateString.split("/");
@@ -661,9 +669,15 @@ function convertDateToServerFormat(dateString) {
         return null;
     }
 
-    const day = parts[0];
-    const month = parts[1];
-    const year = parts[2];
+    const day =
+        parts[0];
+
+    const month =
+        parts[1];
+
+    const year =
+        parts[2];
+
 
     if (
         day.length !== 2 ||
@@ -673,6 +687,7 @@ function convertDateToServerFormat(dateString) {
         return null;
     }
 
+
     const dayNumber =
         Number(day);
 
@@ -681,6 +696,7 @@ function convertDateToServerFormat(dateString) {
 
     const yearNumber =
         Number(year);
+
 
     if (
         dayNumber < 1 ||
@@ -692,12 +708,14 @@ function convertDateToServerFormat(dateString) {
         return null;
     }
 
+
     const testDate =
         new Date(
             yearNumber,
             monthNumber - 1,
             dayNumber
         );
+
 
     if (
         testDate.getFullYear() !== yearNumber ||
@@ -707,17 +725,18 @@ function convertDateToServerFormat(dateString) {
         return null;
     }
 
-    return `${year}-${month}-${day}`;
+
+    return (
+        `${year}-${month}-${day}`
+    );
 }
 
 
 /* =========================================
    CONFIRM TRIP
-   ========================================= */
+========================================= */
 
 async function confirmSchedule() {
-
-    console.log("MomTrip: Confirm clicked");
 
     const display =
         document.getElementById(
@@ -729,9 +748,11 @@ async function confirmSchedule() {
             "tripTime"
         );
 
+
     if (!display || !timeInput) {
         return;
     }
+
 
     const displayDate =
         display.value.trim();
@@ -739,15 +760,12 @@ async function confirmSchedule() {
     const time =
         timeInput.value;
 
+
     const serverDate =
         convertDateToServerFormat(
             displayDate
         );
 
-
-    /* -----------------------------------------
-       VALIDATE DATE
-       ----------------------------------------- */
 
     if (!serverDate) {
 
@@ -761,10 +779,6 @@ async function confirmSchedule() {
     }
 
 
-    /* -----------------------------------------
-       VALIDATE TIME
-       ----------------------------------------- */
-
     if (!time) {
 
         alert(
@@ -777,9 +791,23 @@ async function confirmSchedule() {
     }
 
 
-    /* -----------------------------------------
-       SEND TO FLASK
-       ----------------------------------------- */
+    /*
+     * Disable button while sending.
+     */
+
+    const confirmButton =
+        document.getElementById(
+            "confirmButton"
+        );
+
+    if (confirmButton) {
+
+        confirmButton.disabled = true;
+
+        confirmButton.textContent =
+            "SENDING... ❤️";
+    }
+
 
     try {
 
@@ -813,13 +841,17 @@ async function confirmSchedule() {
                 "Something went wrong."
             );
 
+            if (confirmButton) {
+
+                confirmButton.disabled = false;
+
+                confirmButton.textContent =
+                    "CONFIRM OUR TRIP ❤️";
+            }
+
             return;
         }
 
-
-        /* -----------------------------------------
-           SUCCESS
-           ----------------------------------------- */
 
         showThankYou(
             serverDate,
@@ -834,19 +866,30 @@ async function confirmSchedule() {
             error
         );
 
+
         alert(
-            "Could not connect to MomTrip. " +
-            "Please make sure the server is running."
+            "Could not connect to MomTrip. Please make sure the server is running."
         );
+
+
+        if (confirmButton) {
+
+            confirmButton.disabled = false;
+
+            confirmButton.textContent =
+                "CONFIRM OUR TRIP ❤️";
+        }
     }
 }
 
 
 /* =========================================
    FORMAT DATE
-   ========================================= */
+========================================= */
 
-function formatDateForDisplay(serverDate) {
+function formatDateForDisplay(
+    serverDate
+) {
 
     const parts =
         serverDate.split("-");
@@ -855,22 +898,36 @@ function formatDateForDisplay(serverDate) {
         return serverDate;
     }
 
-    const year = parts[0];
-    const month = parts[1];
-    const day = parts[2];
+    const year =
+        parts[0];
 
-    return `${day}/${month}/${year}`;
+    const month =
+        parts[1];
+
+    const day =
+        parts[2];
+
+
+    return (
+        `${day}/${month}/${year}`
+    );
 }
 
 
 /* =========================================
    THANK YOU PAGE
-   ========================================= */
+========================================= */
 
-function showThankYou(date, time) {
+function showThankYou(
+    date,
+    time
+) {
 
     const formattedDate =
-        formatDateForDisplay(date);
+        formatDateForDisplay(
+            date
+        );
+
 
     document.body.innerHTML = `
 
@@ -934,7 +991,9 @@ function showThankYou(date, time) {
 
 
 /* =========================================
-   SAFETY CHECK
-   ========================================= */
+   SAFETY STARTUP CHECK
+========================================= */
 
-console.log("✅ MomTrip script loaded successfully.");
+console.log(
+    "❤️ MomTrip JavaScript loaded successfully."
+);
