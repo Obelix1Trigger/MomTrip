@@ -1,16 +1,13 @@
-from flask import Flask, request, jsonify, send_from_directory
 import os
-import smtplib
-from email.message import EmailMessage
-from dotenv import load_dotenv
 
-load_dotenv()
+from flask import Flask, request, jsonify, send_from_directory
+import resend
 
-app = Flask(__name__, static_folder=".", static_url_path="")
+app = Flask(__name__)
 
 
 # =========================================
-# HOME PAGE
+# HOME
 # =========================================
 
 @app.route("/")
@@ -33,23 +30,26 @@ def static_files(filename):
 
 def send_confirmation_email(date, time):
 
-    sender_email = os.getenv("EMAIL_USER")
-    sender_password = os.getenv("EMAIL_PASSWORD")
+    api_key = os.getenv("RESEND_API_KEY")
     receiver_email = os.getenv("EMAIL_TO")
 
-    if not sender_email or not sender_password or not receiver_email:
-        print("Email settings are missing.")
+    if not api_key:
+        print("Resend API key is missing.")
         return False
 
-    message = EmailMessage()
+    if not receiver_email:
+        print("EMAIL_TO is missing.")
+        return False
 
-    message["Subject"] = "❤️ MomTrip Confirmation"
-    message["From"] = sender_email
-    message["To"] = receiver_email
+    try:
 
-    message.set_content(
-        f"""
-❤️ MOMTRIP CONFIRMATION
+        resend.api_key = api_key
+
+        params = {
+            "from": "MomTrip <onboarding@resend.dev>",
+            "to": [receiver_email],
+            "subject": "❤️ MomTrip Confirmation",
+            "text": f"""❤️ MOMTRIP CONFIRMATION
 
 🏊 Trip:
 Chris Hotel Swimming Pool
@@ -63,47 +63,31 @@ Jacques and Frank
 🕐 Time:
 {time}
 
-==============================
+MomTrip confirmation sent successfully.
+"""
+        }
 
-Mom said YES! ❤️🥹
-        """
-    )
+        result = resend.Emails.send(params)
 
-    print("==============================")
-    print("❤️ MOMTRIP CONFIRMATION")
-    print("==============================")
-    print("🏊 Trip: Chris Hotel Swimming Pool")
-    print("👦 Kids: Jacques and Frank")
-    print(f"📅 Date: {date}")
-    print(f"🕐 Time: {time}")
-    print("==============================")
+        print("==============================")
+        print("❤️ MOMTRIP CONFIRMATION")
+        print("==============================")
+        print("🏊 Trip: Chris Hotel Swimming Pool")
+        print("👦 Kids: Jacques and Frank")
+        print(f"📅 Date: {date}")
+        print(f"🕐 Time: {time}")
+        print("✅ EMAIL SENT SUCCESSFULLY!")
+        print("Email result:", result)
 
-    try:
-
-        # Gmail SMTP connection
-        with smtplib.SMTP_SSL(
-            "smtp.gmail.com",
-            465,
-            timeout=10
-        ) as smtp:
-
-            smtp.login(
-                sender_email,
-                sender_password
-            )
-
-            smtp.send_message(message)
-
-        print("📧 Email sent successfully!")
         return True
 
     except Exception as error:
 
-        print("⚠️ Email could not be sent.")
+        print("==============================")
+        print("⚠️ EMAIL COULD NOT BE SENT")
+        print("==============================")
         print("Email error:", error)
 
-        # IMPORTANT:
-        # Email failure must NOT stop MomTrip.
         return False
 
 
@@ -128,7 +112,6 @@ def confirm():
                 "message": "Please choose both a date and a time."
             }), 400
 
-
         print()
         print("==============================")
         print("❤️ MOMTRIP CONFIRMATION")
@@ -139,58 +122,31 @@ def confirm():
         print(f"🕐 Time: {time}")
         print("==============================")
 
+        email_sent = send_confirmation_email(date, time)
 
-        # Try to send the email.
-        # If it fails, DO NOT fail the trip confirmation.
-        email_sent = send_confirmation_email(
-            date,
-            time
-        )
-
-
-        # Always return success once the
-        # date and time were received.
         return jsonify({
             "success": True,
-            "message": "Trip confirmed! ❤️",
+            "message": "Trip confirmed!",
             "email_sent": email_sent
         }), 200
 
-
     except Exception as error:
 
-        print("❌ Confirmation error:")
-        print(error)
+        print("❌ Confirmation error:", error)
 
         return jsonify({
             "success": False,
-            "message": "Something went wrong while confirming the trip."
+            "message": "Something went wrong."
         }), 500
 
 
 # =========================================
-# HEALTH CHECK
-# =========================================
-
-@app.route("/api/status")
-def status():
-
-    return jsonify({
-        "online": True,
-        "name": "MomTrip",
-        "trip": "Chris Hotel Swimming Pool"
-    })
-
-
-# =========================================
-# START SERVER
+# RUN
 # =========================================
 
 if __name__ == "__main__":
 
-    print()
     print("❤️ MomTrip is running!")
-    print()
 
     app.run(
         host="0.0.0.0",
