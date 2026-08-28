@@ -1,47 +1,57 @@
 from flask import Flask, request, jsonify, send_from_directory
-from pathlib import Path
-from dotenv import load_dotenv
 import os
 import smtplib
 from email.message import EmailMessage
+from dotenv import load_dotenv
 
-# Load .env
 load_dotenv()
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder=".", static_url_path="")
 
-BASE_DIR = Path(__file__).resolve().parent
 
-# Gmail settings
-GMAIL_ADDRESS = os.getenv("GMAIL_ADDRESS")
-GMAIL_APP_PASSWORD = os.getenv("GMAIL_APP_PASSWORD")
-MOM_EMAIL = os.getenv("MOM_EMAIL")
-
+# =========================================
+# HOME PAGE
+# =========================================
 
 @app.route("/")
 def home():
-    return send_from_directory(BASE_DIR, "index.html")
+    return send_from_directory(".", "index.html")
 
+
+# =========================================
+# STATIC FILES
+# =========================================
 
 @app.route("/<path:filename>")
-def files(filename):
-    return send_from_directory(BASE_DIR, filename)
+def static_files(filename):
+    return send_from_directory(".", filename)
 
+
+# =========================================
+# SEND CONFIRMATION EMAIL
+# =========================================
 
 def send_confirmation_email(date, time):
 
+    sender_email = os.getenv("EMAIL_USER")
+    sender_password = os.getenv("EMAIL_PASSWORD")
+    receiver_email = os.getenv("EMAIL_TO")
+
+    if not sender_email or not sender_password or not receiver_email:
+        print("Email settings are missing.")
+        return False
+
     message = EmailMessage()
 
-    message["Subject"] = "❤️ MomTrip — Swimming Trip Confirmed!"
-    message["From"] = GMAIL_ADDRESS
-    message["To"] = MOM_EMAIL
+    message["Subject"] = "❤️ MomTrip Confirmation"
+    message["From"] = sender_email
+    message["To"] = receiver_email
 
-    message.set_content(f"""
-❤️ MOMTRIP CONFIRMATION ❤️
+    message.set_content(
+        f"""
+❤️ MOMTRIP CONFIRMATION
 
-The swimming trip has been confirmed!
-
-🏊 Destination:
+🏊 Trip:
 Chris Hotel Swimming Pool
 
 👦 Kids:
@@ -53,41 +63,12 @@ Jacques and Frank
 🕐 Time:
 {time}
 
-We can't wait! ❤️
+==============================
 
-— MomTrip
-""")
+Mom said YES! ❤️🥹
+        """
+    )
 
-    with smtplib.SMTP_SSL("smtp.gmail.com", 465) as smtp:
-        smtp.login(
-            GMAIL_ADDRESS,
-            GMAIL_APP_PASSWORD
-        )
-
-        smtp.send_message(message)
-
-
-@app.route("/api/confirm", methods=["POST"])
-def confirm():
-
-    data = request.get_json()
-
-    if not data:
-        return jsonify({
-            "success": False,
-            "message": "No trip information received."
-        }), 400
-
-    date = data.get("date", "")
-    time = data.get("time", "")
-
-    if not date or not time:
-        return jsonify({
-            "success": False,
-            "message": "Please choose both a date and time."
-        }), 400
-
-    print()
     print("==============================")
     print("❤️ MOMTRIP CONFIRMATION")
     print("==============================")
@@ -99,28 +80,111 @@ def confirm():
 
     try:
 
-        send_confirmation_email(date, time)
+        # Gmail SMTP connection
+        with smtplib.SMTP_SSL(
+            "smtp.gmail.com",
+            465,
+            timeout=10
+        ) as smtp:
+
+            smtp.login(
+                sender_email,
+                sender_password
+            )
+
+            smtp.send_message(message)
 
         print("📧 Email sent successfully!")
-        print()
-
-        return jsonify({
-            "success": True,
-            "message": "Trip confirmed and email sent!"
-        })
+        return True
 
     except Exception as error:
 
+        print("⚠️ Email could not be sent.")
+        print("Email error:", error)
+
+        # IMPORTANT:
+        # Email failure must NOT stop MomTrip.
+        return False
+
+
+# =========================================
+# CONFIRM TRIP
+# =========================================
+
+@app.route("/api/confirm", methods=["POST"])
+def confirm():
+
+    try:
+
+        data = request.get_json(silent=True) or {}
+
+        date = data.get("date")
+        time = data.get("time")
+
+        if not date or not time:
+
+            return jsonify({
+                "success": False,
+                "message": "Please choose both a date and a time."
+            }), 400
+
+
         print()
-        print("❌ EMAIL ERROR:")
+        print("==============================")
+        print("❤️ MOMTRIP CONFIRMATION")
+        print("==============================")
+        print("🏊 Trip: Chris Hotel Swimming Pool")
+        print("👦 Kids: Jacques and Frank")
+        print(f"📅 Date: {date}")
+        print(f"🕐 Time: {time}")
+        print("==============================")
+
+
+        # Try to send the email.
+        # If it fails, DO NOT fail the trip confirmation.
+        email_sent = send_confirmation_email(
+            date,
+            time
+        )
+
+
+        # Always return success once the
+        # date and time were received.
+        return jsonify({
+            "success": True,
+            "message": "Trip confirmed! ❤️",
+            "email_sent": email_sent
+        }), 200
+
+
+    except Exception as error:
+
+        print("❌ Confirmation error:")
         print(error)
-        print()
 
         return jsonify({
             "success": False,
-            "message": "Trip received, but the email could not be sent."
+            "message": "Something went wrong while confirming the trip."
         }), 500
 
+
+# =========================================
+# HEALTH CHECK
+# =========================================
+
+@app.route("/api/status")
+def status():
+
+    return jsonify({
+        "online": True,
+        "name": "MomTrip",
+        "trip": "Chris Hotel Swimming Pool"
+    })
+
+
+# =========================================
+# START SERVER
+# =========================================
 
 if __name__ == "__main__":
 
@@ -128,12 +192,8 @@ if __name__ == "__main__":
     print("❤️ MomTrip is running!")
     print()
 
-    # Render provides PORT automatically.
-    # 5000 is used when running locally.
-    port = int(os.environ.get("PORT", 5000))
-
     app.run(
         host="0.0.0.0",
-        port=port,
+        port=int(os.environ.get("PORT", 5000)),
         debug=False
     )
